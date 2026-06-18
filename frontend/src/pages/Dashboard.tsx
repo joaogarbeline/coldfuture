@@ -29,10 +29,10 @@ function computeAlerta(
     return { tempMax: false, tempMin: false, umidMax: false, umidMin: false };
   }
   return {
-    tempMax: maquina.setpoint_temp_max != null && cache.temperatura > maquina.setpoint_temp_max,
-    tempMin: maquina.setpoint_temp_min != null && cache.temperatura < maquina.setpoint_temp_min,
-    umidMax: maquina.setpoint_umid_max != null && cache.umidade > maquina.setpoint_umid_max,
-    umidMin: maquina.setpoint_umid_min != null && cache.umidade < maquina.setpoint_umid_min,
+    tempMax: maquina.setpoint_temp_max != null && cache.temperatura >= maquina.setpoint_temp_max,
+    tempMin: maquina.setpoint_temp_min != null && cache.temperatura <= maquina.setpoint_temp_min,
+    umidMax: maquina.setpoint_umid_max != null && cache.umidade >= maquina.setpoint_umid_max,
+    umidMin: maquina.setpoint_umid_min != null && cache.umidade <= maquina.setpoint_umid_min,
   };
 }
 

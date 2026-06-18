@@ -23,33 +23,54 @@ import { useMaquinas } from '../hooks/useMaquinas';
 import { useLeiturasPorPeriodo } from '../hooks/useLeituras';
 import type { Leitura, PeriodoParams, Maquina } from '../types';
 
-const ALARME_LABELS: Record<number, string> = {
-  1: 'Alta Temperatura',
-  2: 'Baixa Temperatura',
-  4: 'Alta Umidade',
-  8: 'Falha de Comunicacao',
-  16: 'Sensor com Defeito',
+const TIPO_ALARME_LABELS: Record<string, string> = {
+  'temp_max': 'Alta Temperatura',
+  'temp_min': 'Baixa Temperatura',
+  'umid_max': 'Alta Umidade',
+  'umid_min': 'Baixa Umidade',
 };
 
-function getAlarmesAtivos(alarmes: number): { codigo: number; descricao: string }[] {
-  const ativos: { codigo: number; descricao: string }[] = [];
-  Object.entries(ALARME_LABELS).forEach(([codigo, descricao]) => {
-    if (alarmes & parseInt(codigo)) {
-      ativos.push({ codigo: parseInt(codigo), descricao });
-    }
-  });
-  return ativos;
+interface AlarmeEntry {
+  leitura: Leitura;
+  tipos: string[];
+  descricoes: string[];
+}
+
+function detectarAlarmes(leitura: Leitura, maquina?: Maquina): AlarmeEntry | null {
+  if (!maquina) return null;
+  const tipos: string[] = [];
+  const descricoes: string[] = [];
+
+  if (maquina.setpoint_temp_max != null && leitura.temperatura != null && leitura.temperatura >= maquina.setpoint_temp_max) {
+    tipos.push('temp_max');
+    descricoes.push(`Temp ${Math.round(leitura.temperatura)}°C >= max ${maquina.setpoint_temp_max}°C`);
+  }
+  if (maquina.setpoint_temp_min != null && leitura.temperatura != null && leitura.temperatura <= maquina.setpoint_temp_min) {
+    tipos.push('temp_min');
+    descricoes.push(`Temp ${Math.round(leitura.temperatura)}°C <= min ${maquina.setpoint_temp_min}°C`);
+  }
+  if (maquina.setpoint_umid_max != null && leitura.umidade != null && leitura.umidade >= maquina.setpoint_umid_max) {
+    tipos.push('umid_max');
+    descricoes.push(`Umid ${Math.round(leitura.umidade)}% >= max ${maquina.setpoint_umid_max}%`);
+  }
+  if (maquina.setpoint_umid_min != null && leitura.umidade != null && leitura.umidade <= maquina.setpoint_umid_min) {
+    tipos.push('umid_min');
+    descricoes.push(`Umid ${Math.round(leitura.umidade)}% <= min ${maquina.setpoint_umid_min}%`);
+  }
+
+  if (tipos.length === 0) return null;
+  return { leitura, tipos, descricoes };
 }
 
 export default function Alarmes() {
   const { data: maquinas, isLoading: loadingMaquinas } = useMaquinas();
   const [maquinaId, setMaquinaId] = useState<number | ''>('');
-  const [tipoAlarme, setTipoAlarme] = useState<number | ''>('');
+  const [tipoAlarme, setTipoAlarme] = useState<string>('');
   const [pagina, setPagina] = useState(1);
   const [linhasPorPagina, setLinhasPorPagina] = useState(25);
 
   const params: PeriodoParams | null = useMemo(() => {
-    const p: PeriodoParams = { limit: 500 };
+    const p: PeriodoParams = { limit: 50000 };
     if (maquinaId !== '') p.maquina = maquinaId as number;
     const fim = new Date();
     const inicio = new Date(fim);
@@ -70,15 +91,17 @@ export default function Alarmes() {
     return map;
   }, [maquinas]);
 
-  const leiturasComAlarme = useMemo(() => {
+  const todosAlarmes = useMemo(() => {
     if (!leituras) return [];
-    return leituras.filter((l) => l.alarmes !== null && l.alarmes > 0);
-  }, [leituras]);
+    return leituras
+      .map((l) => detectarAlarmes(l, maquinaMap[l.maquina_id]))
+      .filter((a): a is AlarmeEntry => a !== null);
+  }, [leituras, maquinaMap]);
 
   const filteredLeituras = useMemo(() => {
-    if (tipoAlarme === '') return leiturasComAlarme;
-    return leiturasComAlarme.filter((l) => (l.alarmes! & (tipoAlarme as number)) !== 0);
-  }, [leiturasComAlarme, tipoAlarme]);
+    if (tipoAlarme === '') return todosAlarmes;
+    return todosAlarmes.filter((a) => a.tipos.includes(tipoAlarme));
+  }, [todosAlarmes, tipoAlarme]);
 
   if (loadingMaquinas) {
     return (
@@ -119,13 +142,11 @@ export default function Alarmes() {
             <Select
               value={tipoAlarme}
               label="Tipo de Alarme"
-              onChange={(e) => setTipoAlarme(e.target.value as number)}
+              onChange={(e) => setTipoAlarme(e.target.value as string)}
             >
               <MenuItem value="">Todos</MenuItem>
-              {Object.entries(ALARME_LABELS).map(([codigo, descricao]) => (
-                <MenuItem key={codigo} value={parseInt(codigo)}>
-                  {descricao}
-                </MenuItem>
+              {Object.entries(TIPO_ALARME_LABELS).map(([key, label]) => (
+                <MenuItem key={key} value={key}>{label}</MenuItem>
               ))}
             </Select>
           </FormControl>
@@ -156,35 +177,35 @@ export default function Alarmes() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredLeituras.slice((pagina - 1) * linhasPorPagina, pagina * linhasPorPagina).map((leitura) => {
-                const alarmes = getAlarmesAtivos(leitura.alarmes ?? 0);
+              {filteredLeituras.slice((pagina - 1) * linhasPorPagina, pagina * linhasPorPagina).map((alarme) => {
+                const l = alarme.leitura;
                 return (
                   <TableRow
-                    key={leitura.id}
+                    key={l.id}
                     sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
                   >
                     <TableCell>
-                      {new Date(leitura.data_hora).toLocaleString('pt-BR')}
+                      {new Date(l.data_hora).toLocaleString('pt-BR')}
                     </TableCell>
                     <TableCell>
-                      {maquinaMap[leitura.maquina_id]?.nome ?? `#${leitura.maquina_id}`}
+                      {maquinaMap[l.maquina_id]?.nome ?? `#${l.maquina_id}`}
                     </TableCell>
                     <TableCell>
-                      {leitura.temperatura !== null
-                        ? `${Math.round(leitura.temperatura)}°C`
+                      {l.temperatura !== null
+                        ? `${Math.round(l.temperatura)}°C`
                         : '--'}
                     </TableCell>
                     <TableCell>
-                      {leitura.umidade !== null
-                        ? `${Math.round(leitura.umidade)}%`
+                      {l.umidade !== null
+                        ? `${Math.round(l.umidade)}%`
                         : '--'}
                     </TableCell>
                     <TableCell>
                       <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                        {alarmes.map((a) => (
+                        {alarme.descricoes.map((desc, i) => (
                           <Chip
-                            key={a.codigo}
-                            label={a.descricao}
+                            key={i}
+                            label={desc}
                             color="error"
                             size="small"
                             variant="outlined"
