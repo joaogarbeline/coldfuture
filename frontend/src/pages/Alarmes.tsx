@@ -13,6 +13,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Button,
   CircularProgress,
   Alert,
   Chip,
@@ -44,6 +45,8 @@ export default function Alarmes() {
   const { data: maquinas, isLoading: loadingMaquinas } = useMaquinas();
   const [maquinaId, setMaquinaId] = useState<number | ''>('');
   const [tipoAlarme, setTipoAlarme] = useState<number | ''>('');
+  const [pagina, setPagina] = useState(1);
+  const [linhasPorPagina, setLinhasPorPagina] = useState(25);
 
   const params: PeriodoParams | null = useMemo(() => {
     const p: PeriodoParams = { limit: 500 };
@@ -140,6 +143,7 @@ export default function Alarmes() {
       )}
 
       {filteredLeituras.length > 0 && (
+        <>
         <TableContainer component={Paper}>
           <Table>
             <TableHead>
@@ -152,7 +156,7 @@ export default function Alarmes() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredLeituras.map((leitura) => {
+              {filteredLeituras.slice((pagina - 1) * linhasPorPagina, pagina * linhasPorPagina).map((leitura) => {
                 const alarmes = getAlarmesAtivos(leitura.alarmes ?? 0);
                 return (
                   <TableRow
@@ -194,6 +198,27 @@ export default function Alarmes() {
             </TableBody>
           </Table>
         </TableContainer>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2, flexWrap: 'wrap', gap: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="body2" color="text.secondary">Linhas por pagina:</Typography>
+            <FormControl size="small" sx={{ minWidth: 80 }}>
+              <Select value={linhasPorPagina} onChange={(e) => { setLinhasPorPagina(e.target.value as number); setPagina(1); }}>
+                <MenuItem value={25}>25</MenuItem>
+                <MenuItem value={50}>50</MenuItem>
+                <MenuItem value={100}>100</MenuItem>
+                <MenuItem value={200}>200</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Button size="small" disabled={pagina <= 1} onClick={() => setPagina((p) => p - 1)}>Anterior</Button>
+            <Typography variant="body2" color="text.secondary">
+              Pagina {pagina} de {Math.ceil(filteredLeituras.length / linhasPorPagina)}
+            </Typography>
+            <Button size="small" disabled={pagina >= Math.ceil(filteredLeituras.length / linhasPorPagina)} onClick={() => setPagina((p) => p + 1)}>Proximo</Button>
+          </Box>
+        </Box>
+        </>
       )}
     </Box>
   );

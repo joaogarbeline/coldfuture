@@ -3,7 +3,6 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   AppBar,
   Box,
-  CssBaseline,
   Divider,
   Drawer,
   IconButton,
@@ -18,17 +17,21 @@ import {
 import {
   Menu as MenuIcon,
   Dashboard as DashboardIcon,
-  History as HistoryIcon,
+  Assessment as ReportIcon,
   Warning as WarningIcon,
   Settings as SettingsIcon,
   Thermostat as ThermostatIcon,
+  Brightness4 as DarkIcon,
+  Brightness7 as LightIcon,
+  Logout as LogoutIcon,
 } from '@mui/icons-material';
+import { useThemeMode } from '../contexts/ThemeModeContext';
 
 const DRAWER_WIDTH = 260;
 
 const menuItems = [
   { label: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-  { label: 'Historico', icon: <HistoryIcon />, path: '/historico' },
+  { label: 'Relatorios', icon: <ReportIcon />, path: '/relatorios' },
   { label: 'Alarmes', icon: <WarningIcon />, path: '/alarmes' },
   { label: 'Configuracao', icon: <SettingsIcon />, path: '/configuracao' },
 ];
@@ -41,13 +44,19 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { dark, toggle } = useThemeMode();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('coldvisio-token');
+    navigate('/login');
+  };
+
   const drawer = (
-    <Box>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <Toolbar>
         <ThermostatIcon sx={{ mr: 1, color: 'primary.main' }} />
         <Typography variant="h6" noWrap>
@@ -55,7 +64,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
         </Typography>
       </Toolbar>
       <Divider />
-      <List>
+      <List sx={{ flexGrow: 1 }}>
         {menuItems.map((item) => (
           <ListItem key={item.path} disablePadding>
             <ListItemButton
@@ -71,12 +80,30 @@ export default function MainLayout({ children }: MainLayoutProps) {
           </ListItem>
         ))}
       </List>
+      <Divider />
+      <Box sx={{ p: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, pl: 1, mb: 0.5 }}>
+          <IconButton onClick={toggle} size="small">
+            {dark ? <LightIcon fontSize="small" /> : <DarkIcon fontSize="small" />}
+          </IconButton>
+          <Typography variant="body2" color="text.secondary">
+            {dark ? 'Modo claro' : 'Modo escuro'}
+          </Typography>
+        </Box>
+        <ListItem disablePadding>
+          <ListItemButton onClick={handleLogout}>
+            <ListItemIcon>
+              <LogoutIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText primary="Sair" secondary="Admin" />
+          </ListItemButton>
+        </ListItem>
+      </Box>
     </Box>
   );
 
   return (
     <Box sx={{ display: 'flex' }}>
-      <CssBaseline />
       <AppBar
         position="fixed"
         sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}
@@ -91,9 +118,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
             <MenuIcon />
           </IconButton>
           <ThermostatIcon sx={{ mr: 1 }} />
-          <Typography variant="h6" noWrap>
+          <Typography variant="h6" noWrap sx={{ flexGrow: 1 }}>
             Coldvisio
           </Typography>
+          <IconButton color="inherit" onClick={toggle} sx={{ display: { xs: 'none', sm: 'inline-flex' } }}>
+            {dark ? <LightIcon /> : <DarkIcon />}
+          </IconButton>
         </Toolbar>
       </AppBar>
 
@@ -133,7 +163,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
           mt: 8,
           width: { sm: `calc(100% - ${DRAWER_WIDTH}px)` },
           minHeight: '100vh',
-          bgcolor: 'grey.50',
+          bgcolor: 'background.default',
         }}
       >
         {children}

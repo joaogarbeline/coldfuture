@@ -1,4 +1,4 @@
-package services
+﻿package services
 
 import (
 	"time"
@@ -17,6 +17,8 @@ type LeituraService interface {
 	BuscarEstatisticas(maquinaID uint) (*models.Estatisticas, error)
 	BuscarEstatisticasDiarias(maquinaID uint, data time.Time) ([]models.EstatisticaDiaria, error)
 	BuscarPorPeriodoMultiplasMaquinas(maquinaIDs []uint, inicio, fim *time.Time, limit, offset int) ([]models.Leitura, error)
+	BuscarResumoDiarioHoje() ([]models.ResumoDiario, error)
+	BuscarResumoDiarioPeriodo(maquinaIDs []uint, inicio, fim *time.Time) ([]models.ResumoDiario, error)
 }
 
 type leituraService struct {
@@ -62,4 +64,29 @@ func (s *leituraService) BuscarEstatisticasDiarias(maquinaID uint, data time.Tim
 
 func (s *leituraService) BuscarPorPeriodoMultiplasMaquinas(maquinaIDs []uint, inicio, fim *time.Time, limit, offset int) ([]models.Leitura, error) {
 	return s.repo.FindByPeriodoMultiplas(maquinaIDs, inicio, fim, limit, offset)
+}
+
+func (s *leituraService) BuscarResumoDiarioHoje() ([]models.ResumoDiario, error) {
+	return s.repo.FindResumoDiarioHoje()
+}
+
+func (s *leituraService) BuscarResumoDiarioPeriodo(maquinaIDs []uint, inicio, fim *time.Time) ([]models.ResumoDiario, error) {
+	now := time.Now()
+	loc := now.Location()
+
+	var ini time.Time
+	if inicio != nil {
+		ini = time.Date(inicio.Year(), inicio.Month(), inicio.Day(), 0, 0, 0, 0, loc)
+	} else {
+		ini = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
+	}
+
+	var f time.Time
+	if fim != nil {
+		f = time.Date(fim.Year(), fim.Month(), fim.Day(), 0, 0, 0, 0, loc).Add(24 * time.Hour)
+	} else {
+		f = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc).Add(24 * time.Hour)
+	}
+
+	return s.repo.FindResumoDiarioPeriodo(maquinaIDs, ini, f)
 }

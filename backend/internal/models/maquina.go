@@ -46,6 +46,17 @@ func (Leitura) TableName() string {
 	return "leituras"
 }
 
+type ResumoDiario struct {
+	Data      string   `json:"data"`
+	MaquinaID uint     `json:"maquina_id"`
+	TempMin   *float64 `json:"temp_min"`
+	TempMax   *float64 `json:"temp_max"`
+	TempAvg   *float64 `json:"temp_avg"`
+	UmidMin   *float64 `json:"umid_min"`
+	UmidMax   *float64 `json:"umid_max"`
+	UmidAvg   *float64 `json:"umid_avg"`
+}
+
 type EstatisticaDiaria struct {
 	Hora           int      `json:"hora"`
 	TemperaturaMax *float64 `json:"temperatura_max"`

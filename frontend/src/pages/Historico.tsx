@@ -151,6 +151,8 @@ export default function Historico() {
   const [params, setParams] = useState<PeriodoParams | null>(null);
   const [fetchId, setFetchId] = useState(0);
   const [exportingCSV, setExportingCSV] = useState(false);
+  const [pagina, setPagina] = useState(1);
+  const [linhasPorPagina, setLinhasPorPagina] = useState(25);
   const tableRef = useRef<HTMLDivElement>(null);
 
   const { data: leituras, isLoading: loadingLeit } = useLeiturasPorPeriodo(params);
@@ -188,6 +190,7 @@ export default function Historico() {
     (p as any)._t = Date.now();
     setParams(p);
     setFetchId((n) => n + 1);
+    setPagina(1);
   };
 
   const maquinaMap = useMemo(() => {
@@ -275,14 +278,15 @@ export default function Historico() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4" fontWeight={700}>Historico</Typography>
         <ToggleButtonGroup value={viewMode} exclusive onChange={(_, v) => v && setViewMode(v)} size="small">
-          <ToggleButton value="chart"><ChartIcon /></ToggleButton>
-          <ToggleButton value="table"><TableIcon /></ToggleButton>
+          <ToggleButton value="chart"><ChartIcon sx={{ mr: 0.5 }} /> Linha</ToggleButton>
+          <ToggleButton value="bars"><ChartIcon sx={{ mr: 0.5 }} /> Diario</ToggleButton>
+          <ToggleButton value="table"><TableIcon sx={{ mr: 0.5 }} /> Tabela</ToggleButton>
         </ToggleButtonGroup>
       </Box>
 
       <Paper sx={{ p: 2, mb: 3 }}>
         <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={3}>
+          <Grid item xs={12} sm={6} md={3}>
             <FormControl fullWidth>
               <InputLabel>Maquinas</InputLabel>
               <Select
@@ -306,7 +310,7 @@ export default function Historico() {
             </FormControl>
           </Grid>
 
-          <Grid item xs={6} md={2}>
+          <Grid item xs={12} sm={6} md={2}>
             <FormControl fullWidth>
               <InputLabel>Periodo</InputLabel>
               <Select value={periodo} label="Periodo" onChange={(e) => handlePeriodoChange(e.target.value)}>
@@ -319,18 +323,18 @@ export default function Historico() {
 
           {periodo === 'custom' && (
             <>
-              <Grid item xs={6} md={2}>
+              <Grid item xs={12} sm={6} md={2}>
                 <TextField fullWidth label="Inicio" type="datetime-local" InputLabelProps={{ shrink: true }}
                   value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
               </Grid>
-              <Grid item xs={6} md={2}>
+              <Grid item xs={12} sm={6} md={2}>
                 <TextField fullWidth label="Fim" type="datetime-local" InputLabelProps={{ shrink: true }}
                   value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
               </Grid>
             </>
           )}
 
-          <Grid item xs={6} md={2}>
+          <Grid item xs={12} sm={6} md={2}>
             <FormControl fullWidth>
               <InputLabel>Agrupar por</InputLabel>
               <Select value={agruparPor} label="Agrupar por" onChange={(e) => setAgruparPor(e.target.value as number)}>
@@ -341,7 +345,7 @@ export default function Historico() {
             </FormControl>
           </Grid>
 
-          <Grid item xs={6} md={periodo === 'custom' ? 3 : 3}>
+          <Grid item xs={12} sm={6} md={periodo === 'custom' ? 2 : 3}>
             <Box sx={{ display: 'flex', gap: 1 }}>
               <Button variant="contained" startIcon={<SearchIcon />} onClick={handleBuscar}
                 disabled={maquinaIds.length === 0} fullWidth>
@@ -353,14 +357,20 @@ export default function Historico() {
       </Paper>
 
       {leituras && leituras.length > 0 && (
-        <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-          <Button variant="outlined" size="small" startIcon={<DownloadIcon />}
-            onClick={handleExportCSV} disabled={exportingCSV}>
-            {exportingCSV ? 'Exportando...' : 'CSV'}
-          </Button>
-          <Tooltip title="Use Ctrl+P para PDF"><Button variant="outlined" size="small" startIcon={<PdfIcon />}
-            onClick={handleExportPDF}>PDF</Button></Tooltip>
-        </Box>
+        <Grid container spacing={1} sx={{ mb: 2 }}>
+          <Grid item xs={12} sm="auto">
+            <Button variant="outlined" size="small" fullWidth startIcon={<DownloadIcon />}
+              onClick={handleExportCSV} disabled={exportingCSV}>
+              {exportingCSV ? 'Exportando...' : 'CSV'}
+            </Button>
+          </Grid>
+          <Grid item xs={12} sm="auto">
+            <Tooltip title="Use Ctrl+P para PDF">
+              <Button variant="outlined" size="small" fullWidth startIcon={<PdfIcon />}
+                onClick={handleExportPDF}>PDF</Button>
+            </Tooltip>
+          </Grid>
+        </Grid>
       )}
 
       {loadingLeit && (
@@ -428,7 +438,7 @@ export default function Historico() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {dadosAgrupados.map((row: any, idx: number) => (
+                {dadosAgrupados.slice((pagina - 1) * linhasPorPagina, pagina * linhasPorPagina).map((row: any, idx: number) => (
                   <TableRow key={idx} hover>
                     <TableCell>{row.hora}</TableCell>
                     <TableCell>
@@ -442,6 +452,32 @@ export default function Historico() {
               </TableBody>
             </Table>
           </TableContainer>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2, flexWrap: 'wrap', gap: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography variant="body2" color="text.secondary">
+                Linhas por pagina:
+              </Typography>
+              <FormControl size="small" sx={{ minWidth: 80 }}>
+                <Select value={linhasPorPagina} onChange={(e) => { setLinhasPorPagina(e.target.value as number); setPagina(1); }}>
+                  <MenuItem value={25}>25</MenuItem>
+                  <MenuItem value={50}>50</MenuItem>
+                  <MenuItem value={100}>100</MenuItem>
+                  <MenuItem value={200}>200</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Button size="small" disabled={pagina <= 1} onClick={() => setPagina((p) => p - 1)}>
+                Anterior
+              </Button>
+              <Typography variant="body2" color="text.secondary">
+                Pagina {pagina} de {Math.ceil(dadosAgrupados.length / linhasPorPagina)}
+              </Typography>
+              <Button size="small" disabled={pagina >= Math.ceil(dadosAgrupados.length / linhasPorPagina)} onClick={() => setPagina((p) => p + 1)}>
+                Proximo
+              </Button>
+            </Box>
+          </Box>
         </Box>
       )}
 

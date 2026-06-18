@@ -13,10 +13,12 @@ import (
 )
 
 type CachedLeitura struct {
-	MaquinaID    uint
-	Temperatura  float64
-	Umidade      float64
-	DataHora     time.Time
+	MaquinaID     uint
+	Temperatura   float64
+	Umidade       float64
+	DataHora      time.Time
+	UltimaLeitura time.Time
+	Stale         bool
 }
 
 type MonitorService interface {
@@ -50,8 +52,10 @@ func NewMonitorService(
 func (s *monitorService) ObterCache() map[uint]CachedLeitura {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
+	agora := time.Now()
 	result := make(map[uint]CachedLeitura, len(s.cache))
 	for k, v := range s.cache {
+		v.Stale = agora.Sub(v.UltimaLeitura) > 600*time.Second
 		result[k] = v
 	}
 	return result
@@ -96,10 +100,11 @@ func (s *monitorService) RealizarLeitura() error {
 		}
 
 		s.cache[maquina.ID] = CachedLeitura{
-			MaquinaID:   maquina.ID,
-			Temperatura: reading.Temperatura,
-			Umidade:     reading.Umidade,
-			DataHora:    agora,
+			MaquinaID:     maquina.ID,
+			Temperatura:   reading.Temperatura,
+			Umidade:       reading.Umidade,
+			DataHora:      agora,
+			UltimaLeitura: agora,
 		}
 
 		leitura := modbus.ReadingToLeitura(reading, maquina.ID)

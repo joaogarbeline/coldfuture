@@ -1,10 +1,11 @@
-package api
+﻿package api
 
 import (
 	"io/fs"
 	"net/http"
 	"strings"
 
+	"dixell-monitor/internal/auth"
 	"dixell-monitor/internal/handlers"
 	"dixell-monitor/internal/web"
 
@@ -15,6 +16,8 @@ import (
 func SetupRouter(
 	maquinaHandler *handlers.MaquinaHandler,
 	leituraHandler *handlers.LeituraHandler,
+	authHandler *handlers.AuthHandler,
+	backupHandler *handlers.BackupHandler,
 ) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 
@@ -32,15 +35,14 @@ func SetupRouter(
 
 	api := router.Group("/api")
 	{
-		maquinas := api.Group("/maquinas")
-		{
-			maquinas.GET("", maquinaHandler.Listar)
-			maquinas.GET("/descobrir", maquinaHandler.Descobrir)
-			maquinas.POST("", maquinaHandler.Criar)
-			maquinas.PUT("/:id", maquinaHandler.Atualizar)
-			maquinas.PUT("/:id/setpoints", maquinaHandler.AtualizarSetpoints)
-			maquinas.DELETE("/:id", maquinaHandler.Remover)
-		}
+		api.POST("/login", authHandler.Login)
+
+		api.GET("/maquinas", maquinaHandler.Listar)
+		api.GET("/maquinas/descobrir", maquinaHandler.Descobrir)
+		api.POST("/maquinas", auth.AuthRequired(), maquinaHandler.Criar)
+		api.PUT("/maquinas/:id", auth.AuthRequired(), maquinaHandler.Atualizar)
+		api.PUT("/maquinas/:id/setpoints", auth.AuthRequired(), maquinaHandler.AtualizarSetpoints)
+		api.DELETE("/maquinas/:id", auth.AuthRequired(), maquinaHandler.Remover)
 
 		leituras := api.Group("/leituras")
 		{
@@ -55,6 +57,9 @@ func SetupRouter(
 		api.GET("/periodo-multiplas", leituraHandler.BuscarPorPeriodoMultiplas)
 		api.GET("/estatisticas/:maquinaId", leituraHandler.BuscarEstatisticas)
 		api.GET("/estatisticas-diarias/:maquinaId", leituraHandler.BuscarEstatisticasDiarias)
+		api.GET("/resumo-diario", leituraHandler.BuscarResumoDiarioPeriodo)
+
+		api.GET("/backup", backupHandler.ExportarBackup)
 
 		api.GET("/health", func(c *gin.Context) {
 			c.JSON(200, gin.H{"status": "ok"})

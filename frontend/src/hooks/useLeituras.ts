@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { leiturasApi } from '../services/api';
+import { leiturasApi, resumoDiarioApi } from '../services/api';
 import type { Leitura, Estatisticas, PeriodoParams } from '../types';
 
 export function useLeiturasPorMaquina(maquinaId: number | null, limit = 100) {
@@ -54,5 +54,31 @@ export function useEstatisticas(maquinaId: number | null) {
     queryKey: ['estatisticas', maquinaId],
     queryFn: () => leiturasApi.estatisticas(maquinaId!),
     enabled: maquinaId !== null,
+  });
+}
+
+export interface ResumoDiarioItem {
+  maquina_id: number;
+  temp_min: number;
+  temp_max: number;
+  umid_min: number;
+  umid_max: number;
+}
+
+export function useResumoDiario() {
+  return useQuery<Record<number, ResumoDiarioItem>>({
+    queryKey: ['resumo-diario'],
+    queryFn: async () => {
+      const raw = await resumoDiarioApi.buscar();
+      if (Array.isArray(raw)) {
+        const map: Record<number, ResumoDiarioItem> = {};
+        raw.forEach((item: ResumoDiarioItem) => {
+          map[item.maquina_id] = item;
+        });
+        return map;
+      }
+      return raw ?? {};
+    },
+    staleTime: 60000,
   });
 }

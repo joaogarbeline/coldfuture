@@ -16,6 +16,19 @@ const api = axios.create({
   },
 });
 
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('coldvisio-token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+export const authApi = {
+  login: (usuario: string, senha: string) =>
+    api.post('/login', { usuario, senha }).then((r) => r.data),
+};
+
 export const maquinasApi = {
   listar: () => api.get<Maquina[]>('/maquinas').then((r) => r.data),
 
@@ -62,6 +75,12 @@ export const leiturasApi = {
 
   exportarCSV: (params: any) =>
     api.get('/periodo/export', { params, responseType: 'blob' }).then((r) => r.data),
+};
+
+export const resumoDiarioApi = {
+  buscar: (params?: any) => api.get('/resumo-diario', { params }).then((r) => r.data),
+
+  resumoDiarioPeriodo: (params: any) => api.get('/resumo-diario', { params }).then(r => r.data),
 };
 
 export default api;

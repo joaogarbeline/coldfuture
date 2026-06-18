@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Box,
   Grid,
@@ -10,10 +10,43 @@ import {
 import { useMaquinas } from '../hooks/useMaquinas';
 import { leiturasApi } from '../services/api';
 import MaquinaCard from '../components/MaquinaCard';
+import type { AlertaMaquina } from '../components/MaquinaCard';
+import type { Maquina } from '../types';
+
+interface CachedEntry {
+  temperatura: number;
+  umidade: number;
+  data_hora: string;
+}
+
+const OFFLINE_THRESHOLD_MS = 10 * 60 * 1000;
+
+function computeAlerta(
+  cache: CachedEntry | undefined,
+  maquina: Maquina
+): AlertaMaquina {
+  if (!cache) {
+    return { tempMax: false, tempMin: false, umidMax: false, umidMin: false };
+  }
+  return {
+    tempMax: maquina.setpoint_temp_max != null && cache.temperatura > maquina.setpoint_temp_max,
+    tempMin: maquina.setpoint_temp_min != null && cache.temperatura < maquina.setpoint_temp_min,
+    umidMax: maquina.setpoint_umid_max != null && cache.umidade > maquina.setpoint_umid_max,
+    umidMin: maquina.setpoint_umid_min != null && cache.umidade < maquina.setpoint_umid_min,
+  };
+}
+
+function isOffline(cache: CachedEntry | undefined): boolean {
+  if (!cache?.data_hora) return true;
+  const age = Date.now() - new Date(cache.data_hora).getTime();
+  return age > OFFLINE_THRESHOLD_MS;
+}
 
 export default function Dashboard() {
   const { data: maquinas, isLoading, error } = useMaquinas();
-  const [cache, setCache] = useState<Record<number, any>>({});
+  const [cache, setCache] = useState<Record<number, CachedEntry>>({});
+  const cacheRef = useRef(cache);
+  cacheRef.current = cache;
 
   const buscarCache = useCallback(async () => {
     try {
@@ -57,14 +90,22 @@ export default function Dashboard() {
       )}
 
       <Grid container spacing={2}>
-        {maquinasAtivas.map((maquina) => (
-          <Grid item xs={12} sm={6} md={4} lg={3} key={maquina.id}>
-            <MaquinaCard
-              nome={maquina.nome}
-              data={cache[maquina.id] ?? null}
-            />
-          </Grid>
-        ))}
+        {maquinasAtivas.map((maquina) => {
+          const cachedEntry = cache[maquina.id];
+          const offline = isOffline(cachedEntry);
+          const alerta = computeAlerta(cachedEntry, maquina);
+          return (
+            <Grid item xs={12} sm={6} md={4} lg={3} key={maquina.id}>
+              <MaquinaCard
+                nome={maquina.nome}
+                data={cachedEntry ?? null}
+                alerta={alerta}
+                offline={offline}
+                ultimaAtualizacao={cachedEntry?.data_hora}
+              />
+            </Grid>
+          );
+        })}
       </Grid>
 
       {maquinasInativas.length > 0 && (

@@ -1,4 +1,4 @@
-package handlers
+﻿package handlers
 
 import (
 	"fmt"
@@ -81,9 +81,11 @@ func (h *LeituraHandler) BuscarCache(c *gin.Context) {
 	result := make(map[uint]gin.H)
 	for id, l := range cache {
 		result[id] = gin.H{
-			"temperatura": l.Temperatura,
-			"umidade":     l.Umidade,
-			"data_hora":   l.DataHora,
+			"temperatura":    l.Temperatura,
+			"umidade":        l.Umidade,
+			"data_hora":      l.DataHora,
+			"ultima_leitura": l.UltimaLeitura,
+			"stale":          l.Stale,
 		}
 	}
 	c.JSON(http.StatusOK, result)
@@ -254,6 +256,65 @@ func (h *LeituraHandler) BuscarPorPeriodoMultiplas(c *gin.Context) {
 	c.JSON(http.StatusOK, leituras)
 }
 
+func (h *LeituraHandler) BuscarResumoDiarioHoje(c *gin.Context) {
+	resumo, err := h.service.BuscarResumoDiarioHoje()
+	if err != nil {
+		h.log.Errorf("erro ao buscar resumo diario: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro ao buscar resumo diario"})
+		return
+	}
+	c.JSON(http.StatusOK, resumo)
+}
+
+func (h *LeituraHandler) BuscarResumoDiarioPeriodo(c *gin.Context) {
+	var inicio *time.Time
+	if ini := c.Query("inicio"); ini != "" {
+		loc := time.Local
+		t, err := time.ParseInLocation("2006-01-02", ini, loc)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "formato de data inicio invalido. Use YYYY-MM-DD"})
+			return
+		}
+		inicio = &t
+	}
+
+	var fim *time.Time
+	if f := c.Query("fim"); f != "" {
+		loc := time.Local
+		t, err := time.ParseInLocation("2006-01-02", f, loc)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "formato de data fim invalido. Use YYYY-MM-DD"})
+			return
+		}
+		fim = &t
+	}
+
+	var maquinaIDs []uint
+	if maqs := c.Query("maquinas"); maqs != "" {
+		for _, s := range strings.Split(maqs, ",") {
+			s = strings.TrimSpace(s)
+			if s == "" {
+				continue
+			}
+			id, err := strconv.ParseUint(s, 10, 32)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "id de maquina invalido: " + s})
+				return
+			}
+			maquinaIDs = append(maquinaIDs, uint(id))
+		}
+	}
+
+	resumo, err := h.service.BuscarResumoDiarioPeriodo(maquinaIDs, inicio, fim)
+	if err != nil {
+		h.log.Errorf("erro ao buscar resumo diario periodo: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro ao buscar resumo diario"})
+		return
+	}
+
+	c.JSON(http.StatusOK, resumo)
+}
+
 func (h *LeituraHandler) ExportarCSV(c *gin.Context) {
 	var maquinaIDs []uint
 
@@ -337,7 +398,7 @@ func (h *LeituraHandler) ExportarCSV(c *gin.Context) {
 	c.Header("Content-Transfer-Encoding", "binary")
 
 	c.Writer.WriteString("\xEF\xBB\xBF")
-	c.Writer.WriteString("Data Hora;Nome Maquina;Temperatura (°C);Umidade (%)\r\n")
+	c.Writer.WriteString("Data Hora;Nome Maquina;Temperatura (C);Umidade (%)\r\n")
 
 	for _, l := range leituras {
 		dataHora := l.DataHora.Format("2006-01-02 15:04:05")
@@ -376,3 +437,5 @@ func parsePagination(c *gin.Context) (int, int) {
 
 	return limit, offset
 }
+
+
