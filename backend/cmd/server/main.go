@@ -44,16 +44,18 @@ func main() {
 
 	maquinaRepo := repositories.NewMaquinaRepository(db)
 	leituraRepo := repositories.NewLeituraRepository(db)
+	configRepo := repositories.NewConfiguracaoRepository(db)
 
 	maquinaService := services.NewMaquinaService(maquinaRepo)
 	leituraService := services.NewLeituraService(leituraRepo)
 
-	monitorService := services.NewMonitorService(cfg, maquinaRepo, leituraRepo)
+	monitorService := services.NewMonitorService(cfg, configRepo, maquinaRepo, leituraRepo)
 
 	maquinaHandler := handlers.NewMaquinaHandler(maquinaService, cfg)
 	leituraHandler := handlers.NewLeituraHandler(leituraService, monitorService)
 	authHandler := handlers.NewAuthHandler()
 	backupHandler := handlers.NewBackupHandler(maquinaRepo, leituraRepo)
+	configHandler := handlers.NewConfiguracaoHandler(configRepo)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -70,7 +72,7 @@ func main() {
 
 	go agendarExportDiario(db)
 
-	router := api.SetupRouter(maquinaHandler, leituraHandler, authHandler, backupHandler)
+	router := api.SetupRouter(maquinaHandler, leituraHandler, authHandler, backupHandler, configHandler)
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%s", cfg.ServerPort),

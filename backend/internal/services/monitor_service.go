@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -19,6 +20,7 @@ type CachedLeitura struct {
 	DataHora      time.Time
 	UltimaLeitura time.Time
 	Stale         bool
+	Online        bool
 }
 
 type MonitorService interface {
@@ -28,6 +30,7 @@ type MonitorService interface {
 
 type monitorService struct {
 	cfg        *config.Config
+	confRepo   repositories.ConfiguracaoRepository
 	maqRepo    repositories.MaquinaRepository
 	leitRepo   repositories.LeituraRepository
 	log        *logrus.Entry
@@ -37,11 +40,13 @@ type monitorService struct {
 
 func NewMonitorService(
 	cfg *config.Config,
+	confRepo repositories.ConfiguracaoRepository,
 	maqRepo repositories.MaquinaRepository,
 	leitRepo repositories.LeituraRepository,
 ) MonitorService {
 	return &monitorService{
 		cfg:      cfg,
+		confRepo: confRepo,
 		maqRepo:  maqRepo,
 		leitRepo: leitRepo,
 		log:      logrus.WithField("service", "monitor"),
@@ -65,6 +70,18 @@ func (s *monitorService) RealizarLeitura() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	if modo, err := s.confRepo.Buscar("modbus_modo"); err == nil && modo != "" {
+		s.cfg.ModbusMode = modo
+	}
+	if host, err := s.confRepo.Buscar("modbus_tcp_host"); err == nil && host != "" {
+		s.cfg.ModbusTCPHost = host
+	}
+	if portStr, err := s.confRepo.Buscar("modbus_tcp_port"); err == nil && portStr != "" {
+		if port, err2 := strconv.Atoi(portStr); err2 == nil {
+			s.cfg.ModbusTCPPort = port
+		}
+	}
+
 	maquinas, err := s.maqRepo.FindAtivas()
 	if err != nil {
 		s.log.Errorf("erro ao buscar maquinas ativas: %v", err)
@@ -75,13 +92,7 @@ func (s *monitorService) RealizarLeitura() error {
 		return nil
 	}
 
-	client := modbus.NewClient(
-		s.cfg.ModbusPort,
-		s.cfg.ModbusBaudrate,
-		s.cfg.ModbusParity,
-		s.cfg.ModbusStopbits,
-		s.cfg.ModbusTimeout,
-	)
+	client := modbus.NewClient(s.cfg)
 
 	sucessos := 0
 	falhas := 0
@@ -95,6 +106,17 @@ func (s *monitorService) RealizarLeitura() error {
 			s.log.WithField("maquina", maquina.Nome).
 				WithField("endereco", maquina.EnderecoModbus).
 				Errorf("falha na leitura: %v", err)
+			if entry, ok := s.cache[maquina.ID]; ok {
+				entry.Online = false
+				entry.UltimaLeitura = agora
+				s.cache[maquina.ID] = entry
+			} else {
+				s.cache[maquina.ID] = CachedLeitura{
+					MaquinaID:     maquina.ID,
+					Online:        false,
+					UltimaLeitura: agora,
+				}
+			}
 			falhas++
 			continue
 		}
@@ -105,6 +127,7 @@ func (s *monitorService) RealizarLeitura() error {
 			Umidade:       reading.Umidade,
 			DataHora:      agora,
 			UltimaLeitura: agora,
+			Online:        true,
 		}
 
 		leitura := modbus.ReadingToLeitura(reading, maquina.ID)

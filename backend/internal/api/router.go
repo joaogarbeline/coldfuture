@@ -18,6 +18,7 @@ func SetupRouter(
 	leituraHandler *handlers.LeituraHandler,
 	authHandler *handlers.AuthHandler,
 	backupHandler *handlers.BackupHandler,
+	configHandler *handlers.ConfiguracaoHandler,
 ) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 
@@ -52,6 +53,7 @@ func SetupRouter(
 
 		api.GET("/ultima/:maquinaId", leituraHandler.BuscarUltima)
 		api.GET("/cache", leituraHandler.BuscarCache)
+		api.POST("/forcar-leitura", leituraHandler.ForcarLeitura)
 		api.GET("/periodo", leituraHandler.BuscarPorPeriodo)
 		api.GET("/periodo/export", leituraHandler.ExportarCSV)
 		api.GET("/periodo-multiplas", leituraHandler.BuscarPorPeriodoMultiplas)
@@ -60,6 +62,9 @@ func SetupRouter(
 		api.GET("/resumo-diario", leituraHandler.BuscarResumoDiarioPeriodo)
 
 		api.GET("/backup", backupHandler.ExportarBackup)
+
+		api.GET("/configuracao-sistema", configHandler.Buscar)
+		api.PUT("/configuracao-sistema", auth.AuthRequired(), configHandler.Salvar)
 
 		api.GET("/health", func(c *gin.Context) {
 			c.JSON(200, gin.H{"status": "ok"})

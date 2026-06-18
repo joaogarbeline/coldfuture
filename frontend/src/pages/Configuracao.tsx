@@ -330,7 +330,9 @@ export default function Configuracao() {
             <Typography variant="body2" color="text.secondary">Controlador: XH260V</Typography>
           </Grid>
           <Grid item xs={12} sm={3}>
-            <Typography variant="body2" color="text.secondary">Comunicacao: Modbus RTU / RS485</Typography>
+            <Typography variant="body2" color="text.secondary">
+              Comunicacao: Modbus RTU / RS485
+            </Typography>
           </Grid>
           <Grid item xs={12} sm={3}>
             <Typography variant="body2" color="text.secondary">Paridade: 8N1 / 9600 baud</Typography>

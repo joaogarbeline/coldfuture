@@ -162,13 +162,7 @@ func (h *MaquinaHandler) AtualizarSetpoints(c *gin.Context) {
 }
 
 func (h *MaquinaHandler) Descobrir(c *gin.Context) {
-	client := modbus.NewClient(
-		h.cfg.ModbusPort,
-		h.cfg.ModbusBaudrate,
-		h.cfg.ModbusParity,
-		h.cfg.ModbusStopbits,
-		h.cfg.ModbusTimeout,
-	)
+	client := modbus.NewClient(h.cfg)
 	defer client.Close()
 
 	descobertos := make([]int, 0)

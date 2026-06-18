@@ -86,9 +86,15 @@ func (h *LeituraHandler) BuscarCache(c *gin.Context) {
 			"data_hora":      l.DataHora,
 			"ultima_leitura": l.UltimaLeitura,
 			"stale":          l.Stale,
+			"online":         l.Online,
 		}
 	}
 	c.JSON(http.StatusOK, result)
+}
+
+func (h *LeituraHandler) ForcarLeitura(c *gin.Context) {
+	go h.monitor.RealizarLeitura()
+	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }
 
 func (h *LeituraHandler) BuscarPorPeriodo(c *gin.Context) {

@@ -129,6 +129,15 @@ func RunMigrations(db *gorm.DB) error {
 		logrus.Warnf("aviso ao alterar tipo data_hora: %v", err)
 	}
 
+	if err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS configuracoes (
+			chave VARCHAR(100) PRIMARY KEY,
+			valor TEXT
+		)
+	`).Error; err != nil {
+		return fmt.Errorf("erro ao criar tabela configuracoes: %w", err)
+	}
+
 	logrus.Info("migracoes executadas com sucesso")
 	return nil
 }

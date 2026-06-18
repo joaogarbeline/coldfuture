@@ -17,15 +17,15 @@ interface CachedEntry {
   temperatura: number;
   umidade: number;
   data_hora: string;
+  online?: boolean;
+  stale?: boolean;
 }
-
-const OFFLINE_THRESHOLD_MS = 10 * 60 * 1000;
 
 function computeAlerta(
   cache: CachedEntry | undefined,
   maquina: Maquina
 ): AlertaMaquina {
-  if (!cache) {
+  if (!cache || cache.online === false) {
     return { tempMax: false, tempMin: false, umidMax: false, umidMin: false };
   }
   return {
@@ -37,9 +37,10 @@ function computeAlerta(
 }
 
 function isOffline(cache: CachedEntry | undefined): boolean {
-  if (!cache?.data_hora) return true;
-  const age = Date.now() - new Date(cache.data_hora).getTime();
-  return age > OFFLINE_THRESHOLD_MS;
+  if (!cache) return true;
+  if (cache.online === false) return true;
+  if (cache.stale === true) return true;
+  return false;
 }
 
 export default function Dashboard() {

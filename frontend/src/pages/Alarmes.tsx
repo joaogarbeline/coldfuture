@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -21,6 +21,7 @@ import {
 import { Warning as WarningIcon } from '@mui/icons-material';
 import { useMaquinas } from '../hooks/useMaquinas';
 import { useLeiturasPorPeriodo } from '../hooks/useLeituras';
+import { leiturasApi } from '../services/api';
 import type { Leitura, PeriodoParams, Maquina } from '../types';
 
 const TIPO_ALARME_LABELS: Record<string, string> = {
@@ -28,6 +29,7 @@ const TIPO_ALARME_LABELS: Record<string, string> = {
   'temp_min': 'Baixa Temperatura',
   'umid_max': 'Alta Umidade',
   'umid_min': 'Baixa Umidade',
+  'comunicacao': 'Falha de Comunicacao',
 };
 
 interface AlarmeEntry {
@@ -68,6 +70,48 @@ export default function Alarmes() {
   const [tipoAlarme, setTipoAlarme] = useState<string>('');
   const [pagina, setPagina] = useState(1);
   const [linhasPorPagina, setLinhasPorPagina] = useState(25);
+  const [alarmesComunicacao, setAlarmesComunicacao] = useState<AlarmeEntry[]>([]);
+
+  const maquinaMap = useMemo(() => {
+    const map: Record<number, Maquina> = {};
+    (maquinas ?? []).forEach((m) => {
+      map[m.id] = m;
+    });
+    return map;
+  }, [maquinas]);
+
+  useEffect(() => {
+    const check = async () => {
+      try {
+        const cache = await leiturasApi.cache();
+        const entries: AlarmeEntry[] = [];
+        for (const [idStr, data] of Object.entries(cache ?? {})) {
+          const d = data as any;
+          const mid = parseInt(idStr);
+          if (d.online === false || d.stale === true) {
+            const m = maquinaMap[mid];
+            if (m && (maquinaId === '' || maquinaId === mid)) {
+              entries.push({
+                leitura: {
+                  id: 0,
+                  maquina_id: mid,
+                  temperatura: d.temperatura ?? null,
+                  umidade: d.umidade ?? null,
+                  data_hora: d.ultima_leitura ?? d.data_hora ?? new Date().toISOString(),
+                } as Leitura,
+                tipos: ['comunicacao'],
+                descricoes: ['Sem comunicacao com o controlador'],
+              });
+            }
+          }
+        }
+        setAlarmesComunicacao(entries);
+      } catch { setAlarmesComunicacao([]); }
+    };
+    check();
+    const interval = setInterval(check, 10000);
+    return () => clearInterval(interval);
+  }, [maquinaId, maquinaMap, maquinas]);
 
   const params: PeriodoParams | null = useMemo(() => {
     const p: PeriodoParams = { limit: 50000 };
@@ -83,14 +127,6 @@ export default function Alarmes() {
   const { data: leituras, isLoading: loadingLeituras } =
     useLeiturasPorPeriodo(params);
 
-  const maquinaMap = useMemo(() => {
-    const map: Record<number, Maquina> = {};
-    (maquinas ?? []).forEach((m) => {
-      map[m.id] = m;
-    });
-    return map;
-  }, [maquinas]);
-
   const todosAlarmes = useMemo(() => {
     if (!leituras) return [];
     return leituras
@@ -99,9 +135,10 @@ export default function Alarmes() {
   }, [leituras, maquinaMap]);
 
   const filteredLeituras = useMemo(() => {
-    if (tipoAlarme === '') return todosAlarmes;
-    return todosAlarmes.filter((a) => a.tipos.includes(tipoAlarme));
-  }, [todosAlarmes, tipoAlarme]);
+    const todos = [...todosAlarmes, ...alarmesComunicacao];
+    if (tipoAlarme === '') return todos;
+    return todos.filter((a) => a.tipos.includes(tipoAlarme));
+  }, [todosAlarmes, alarmesComunicacao, tipoAlarme]);
 
   if (loadingMaquinas) {
     return (

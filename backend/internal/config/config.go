@@ -13,6 +13,9 @@ type Config struct {
 	ModbusParity   string
 	ModbusStopbits int
 	ModbusTimeout  int
+	ModbusMode     string
+	ModbusTCPHost  string
+	ModbusTCPPort  int
 
 	DBHost     string
 	DBPort     string
@@ -36,6 +39,9 @@ func LoadConfig() *Config {
 	viper.SetDefault("MODBUS_PARITY", "E")
 	viper.SetDefault("MODBUS_STOPBITS", 1)
 	viper.SetDefault("MODBUS_TIMEOUT", 2)
+	viper.SetDefault("MODBUS_MODE", "rtu")
+	viper.SetDefault("MODBUS_TCP_HOST", "localhost")
+	viper.SetDefault("MODBUS_TCP_PORT", 502)
 
 	viper.SetDefault("DB_HOST", "localhost")
 	viper.SetDefault("DB_PORT", "5432")
@@ -60,6 +66,9 @@ func LoadConfig() *Config {
 		ModbusParity:   viper.GetString("MODBUS_PARITY"),
 		ModbusStopbits: viper.GetInt("MODBUS_STOPBITS"),
 		ModbusTimeout:  viper.GetInt("MODBUS_TIMEOUT"),
+		ModbusMode:     viper.GetString("MODBUS_MODE"),
+		ModbusTCPHost:  viper.GetString("MODBUS_TCP_HOST"),
+		ModbusTCPPort:  viper.GetInt("MODBUS_TCP_PORT"),
 
 		DBHost:     viper.GetString("DB_HOST"),
 		DBPort:     viper.GetString("DB_PORT"),

@@ -33,6 +33,9 @@ services:
       - MODBUS_PARITY=N
       - MODBUS_STOPBITS=1
       - MODBUS_TIMEOUT=2
+      - MODBUS_MODE=${MODBUS_MODE:-rtu}
+      - MODBUS_TCP_HOST=${MODBUS_TCP_HOST:-localhost}
+      - MODBUS_TCP_PORT=${MODBUS_TCP_PORT:-502}
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USER=dixell
