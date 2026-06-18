@@ -1,0 +1,14 @@
+**/node_modules
+.git
+*.exe
+*.md
+**/dist
+.env
+Dockerfile
+docker-compose.yml
+.gitignore
+.vscode
+.idea
+*.log
+**/server.exe
+*.tmp

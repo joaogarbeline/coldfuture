@@ -1,0 +1,50 @@
+services:
+  postgres:
+    image: postgres:14-alpine
+    container_name: coldvisio-postgres
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: dixell
+      POSTGRES_PASSWORD: dixell123
+      POSTGRES_DB: dixell_monitor
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dixell -d dixell_monitor"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  coldvisio:
+    build: .
+    container_name: coldvisio
+    profiles:
+      - linux
+    ports:
+      - "80:8080"
+    devices:
+      - "/dev/ttyUSB0:/dev/ttyUSB0"
+    environment:
+      - MODBUS_PORT=/dev/ttyUSB0
+      - MODBUS_BAUDRATE=9600
+      - MODBUS_PARITY=N
+      - MODBUS_STOPBITS=1
+      - MODBUS_TIMEOUT=2
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=dixell
+      - DB_PASSWORD=dixell123
+      - DB_NAME=dixell_monitor
+      - SERVER_PORT=8080
+      - READ_INTERVAL=300
+      - TZ=America/Sao_Paulo
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
