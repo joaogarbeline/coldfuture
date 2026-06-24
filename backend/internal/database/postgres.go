@@ -138,6 +138,27 @@ func RunMigrations(db *gorm.DB) error {
 		return fmt.Errorf("erro ao criar tabela configuracoes: %w", err)
 	}
 
+	if err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS comandos (
+			id BIGSERIAL PRIMARY KEY,
+			maquina_id INTEGER REFERENCES maquinas(id) ON DELETE CASCADE,
+			tipo VARCHAR(50),
+			valor VARCHAR(50),
+			sucesso BOOLEAN DEFAULT FALSE,
+			mensagem TEXT,
+			data_hora TIMESTAMP DEFAULT NOW()
+		)
+	`).Error; err != nil {
+		return fmt.Errorf("erro ao criar tabela comandos: %w", err)
+	}
+
+	if err := db.Exec(`
+		CREATE INDEX IF NOT EXISTS idx_comandos_maquina_data
+		ON comandos (maquina_id, data_hora DESC)
+	`).Error; err != nil {
+		return fmt.Errorf("erro ao criar indice comandos: %w", err)
+	}
+
 	logrus.Info("migracoes executadas com sucesso")
 	return nil
 }

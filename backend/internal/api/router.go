@@ -19,6 +19,8 @@ func SetupRouter(
 	authHandler *handlers.AuthHandler,
 	backupHandler *handlers.BackupHandler,
 	configHandler *handlers.ConfiguracaoHandler,
+	controleHandler *handlers.ControleHandler,
+	debugHandler *handlers.DebugHandler,
 ) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 
@@ -44,6 +46,17 @@ func SetupRouter(
 		api.PUT("/maquinas/:id", auth.AuthRequired(), maquinaHandler.Atualizar)
 		api.PUT("/maquinas/:id/setpoints", auth.AuthRequired(), maquinaHandler.AtualizarSetpoints)
 		api.DELETE("/maquinas/:id", auth.AuthRequired(), maquinaHandler.Remover)
+
+		api.POST("/maquinas/:id/comando", controleHandler.EnviarComando)
+		api.GET("/maquinas/:id/status-controle", controleHandler.LerStatusControle)
+		api.GET("/maquinas/:id/setpoints", controleHandler.LerSetpoints)
+		api.PUT("/maquinas/:id/setpoint", controleHandler.AlterarSetpoint)
+
+		api.GET("/comandos", controleHandler.ListarComandos)
+
+		api.GET("/debug/registradores/:id", debugHandler.LerRegistradores)
+		api.POST("/debug/testar-comando/:id", debugHandler.TestarComando)
+		api.GET("/debug/health", debugHandler.Health)
 
 		leituras := api.Group("/leituras")
 		{
@@ -85,6 +98,10 @@ func spaMiddleware(staticFS fs.FS) gin.HandlerFunc {
 			c.Next()
 			return
 		}
+
+		c.Header("Cache-Control", "no-cache, no-store, must-revalidate")
+		c.Header("Pragma", "no-cache")
+		c.Header("Expires", "0")
 
 		path := strings.TrimPrefix(c.Request.URL.Path, "/")
 		if path == "" {

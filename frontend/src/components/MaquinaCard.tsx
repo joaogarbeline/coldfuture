@@ -4,7 +4,6 @@ import {
   Typography,
   Box,
   Chip,
-  Tooltip,
 } from '@mui/material';
 import { Thermostat, WaterDrop, Circle, Warning } from '@mui/icons-material';
 
@@ -21,11 +20,12 @@ export interface AlertaMaquina {
   umidMin: boolean;
 }
 
-export interface ResumoDiarioMaquina {
-  temp_min: number;
-  temp_max: number;
-  umid_min: number;
-  umid_max: number;
+interface StatusData {
+  ligado: boolean;
+  degelo: boolean;
+  refrigeracao: boolean;
+  ventilacao: boolean;
+  desumidificacao: boolean;
 }
 
 interface MaquinaCardProps {
@@ -34,6 +34,7 @@ interface MaquinaCardProps {
   alerta?: AlertaMaquina;
   offline?: boolean;
   ultimaAtualizacao?: string;
+  statusControle?: StatusData | null;
 }
 
 export default function MaquinaCard({
@@ -42,6 +43,7 @@ export default function MaquinaCard({
   alerta,
   offline,
   ultimaAtualizacao,
+  statusControle,
 }: MaquinaCardProps) {
   const temp = data?.temperatura ?? null;
   const umid = data?.umidade ?? null;
@@ -62,12 +64,14 @@ export default function MaquinaCard({
     : 'primary.main';
 
   const alertaChips: string[] = [];
-  if (alerta?.tempMax) alertaChips.push(`T > max`);
-  if (alerta?.tempMin) alertaChips.push(`T < min`);
-  if (alerta?.umidMax) alertaChips.push(`U > max`);
-  if (alerta?.umidMin) alertaChips.push(`U < min`);
+  if (alerta?.tempMax) alertaChips.push('T > max');
+  if (alerta?.tempMin) alertaChips.push('T < min');
+  if (alerta?.umidMax) alertaChips.push('U > max');
+  if (alerta?.umidMin) alertaChips.push('U < min');
 
-  const cardContent = (
+  const status = statusControle;
+
+  return (
     <Card
       sx={{
         minWidth: 200,
@@ -87,7 +91,7 @@ export default function MaquinaCard({
           <Circle
             sx={{ fontSize: 12, color: offline ? '#f44336' : online ? '#4caf50' : '#f44336' }}
           />
-          <Typography variant="subtitle1" fontWeight={700}>
+          <Typography variant="subtitle1" fontWeight={700} sx={{ flexGrow: 1 }}>
             {nome}
           </Typography>
           {hasAlerta && (
@@ -96,12 +100,7 @@ export default function MaquinaCard({
         </Box>
 
         {offline && (
-          <Chip
-            label="Sem comunicacao"
-            color="error"
-            size="small"
-            sx={{ mb: 1 }}
-          />
+          <Chip label="Sem comunicacao" color="error" size="small" sx={{ mb: 1 }} />
         )}
 
         {hasAlerta && !offline && (
@@ -112,31 +111,56 @@ export default function MaquinaCard({
           </Box>
         )}
 
-        <Box sx={{ display: 'flex', gap: 3 }}>
+        <Box sx={{ display: 'flex', gap: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
             <Thermostat sx={{ color: tempColor }} />
-            <Typography variant="h3" fontWeight={700} color={tempColor} sx={{ fontSize: { xs: '2rem', sm: '2.5rem' } }}>
+            <Typography variant="h3" fontWeight={700} color={tempColor} sx={{ fontSize: { xs: '1.8rem', sm: '2.2rem' } }}>
               {temp !== null ? `${Math.round(temp)}°` : '--'}
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
             <WaterDrop sx={{ color: umidColor }} />
-            <Typography variant="h3" fontWeight={700} color={umidColor} sx={{ fontSize: { xs: '2rem', sm: '2.5rem' } }}>
+            <Typography variant="h3" fontWeight={700} color={umidColor} sx={{ fontSize: { xs: '1.8rem', sm: '2.2rem' } }}>
               {umid !== null ? `${Math.round(umid)}%` : '--'}
             </Typography>
           </Box>
         </Box>
+
+        {status && (
+          <Box sx={{ mt: 1.5, pt: 1, borderTop: 1, borderColor: 'divider' }}>
+            <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+              <Chip
+                label={status.degelo ? "ON DEGELO" : "DEGELO"}
+                color={status.degelo ? 'warning' : 'default'}
+                size="small"
+                variant={status.degelo ? 'filled' : 'outlined'}
+                sx={{ fontSize: '0.7rem', height: 22, fontWeight: 700, minWidth: 70 }}
+              />
+              <Chip
+                label={status.refrigeracao ? 'REF' : 'REF'}
+                color={status.refrigeracao ? 'info' : 'default'}
+                size="small"
+                variant={status.refrigeracao ? 'filled' : 'outlined'}
+                sx={{ fontSize: '0.6rem', height: 18 }}
+              />
+              <Chip
+                label={status.ventilacao ? 'VENT' : 'VENT'}
+                color={status.ventilacao ? 'primary' : 'default'}
+                size="small"
+                variant={status.ventilacao ? 'filled' : 'outlined'}
+                sx={{ fontSize: '0.6rem', height: 18 }}
+              />
+              <Chip
+                label={status.desumidificacao ? 'DESUM' : 'DESUM'}
+                color={status.desumidificacao ? 'secondary' : 'default'}
+                size="small"
+                variant={status.desumidificacao ? 'filled' : 'outlined'}
+                sx={{ fontSize: '0.6rem', height: 18 }}
+              />
+            </Box>
+          </Box>
+        )}
       </CardContent>
     </Card>
   );
-
-  if (offline && ultimaAtualizacao) {
-    return (
-      <Tooltip title={`Ultima leitura: ${new Date(ultimaAtualizacao).toLocaleString('pt-BR')}`}>
-        {cardContent}
-      </Tooltip>
-    );
-  }
-
-  return cardContent;
 }

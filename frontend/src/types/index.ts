@@ -67,3 +67,37 @@ export interface ConfiguracaoApp {
   modbus_stopbits: number;
   read_interval: number;
 }
+
+export interface StatusControle {
+  ligado: boolean;
+  degelo: boolean;
+  refrigeracao: boolean;
+  ventilacao: boolean;
+  desumidificacao: boolean;
+}
+
+export interface Comando {
+  id: number;
+  maquina_id: number;
+  tipo: string;
+  valor: string;
+  sucesso: boolean;
+  mensagem: string;
+  data_hora: string;
+  maquina?: Maquina;
+}
+
+export interface ComandoPayload {
+  tipo: string;
+  valor: string;
+}
+
+export interface SetpointPayload {
+  tipo: 'temperatura' | 'umidade';
+  valor: number;
+}
+
+export interface SetpointValues {
+  temperatura: number;
+  umidade: number;
+}

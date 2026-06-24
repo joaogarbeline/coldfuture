@@ -6,6 +6,11 @@ import type {
   CriarMaquinaPayload,
   AtualizarMaquinaPayload,
   PeriodoParams,
+  StatusControle,
+  Comando,
+  ComandoPayload,
+  SetpointPayload,
+  SetpointValues,
 } from '../types';
 
 const api = axios.create({
@@ -81,6 +86,43 @@ export const resumoDiarioApi = {
   buscar: (params?: any) => api.get('/resumo-diario', { params }).then((r) => r.data),
 
   resumoDiarioPeriodo: (params: any) => api.get('/resumo-diario', { params }).then(r => r.data),
+};
+
+export const controleApi = {
+  enviarComando: (maquinaId: number, data: ComandoPayload) =>
+    api.post<Comando>(`/maquinas/${maquinaId}/comando`, data).then((r) => r.data),
+
+  lerStatusControle: (maquinaId: number) =>
+    api.get<StatusControle>(`/maquinas/${maquinaId}/status-controle`).then((r) => r.data),
+
+  lerSetpoints: (maquinaId: number) =>
+    api.get<SetpointValues>(`/maquinas/${maquinaId}/setpoints`).then((r) => r.data),
+
+  alterarSetpoint: (maquinaId: number, data: SetpointPayload) =>
+    api.put<Comando>(`/maquinas/${maquinaId}/setpoint`, data).then((r) => r.data),
+
+  listarComandos: (params?: { maquina?: number; limit?: number; offset?: number }) =>
+    api.get<Comando[]>('/comandos', { params }).then((r) => r.data),
+};
+
+export interface ModbusConfig {
+  modbus_modo: string;
+  modbus_porta: string;
+  modbus_baudrate: number;
+  modbus_parity: string;
+  modbus_stopbits: number;
+  modbus_tcp_host: string;
+  modbus_tcp_port: number;
+  modbus_timeout: number;
+  read_interval: number;
+}
+
+export const configApi = {
+  buscar: () =>
+    api.get<ModbusConfig>('/configuracao-sistema').then((r) => r.data),
+
+  salvarModbus: (data: Partial<ModbusConfig>) =>
+    api.put('/configuracao-sistema', data).then((r) => r.data),
 };
 
 export default api;

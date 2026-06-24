@@ -82,6 +82,21 @@ type LeituraFiltro struct {
 	Fim       *time.Time
 }
 
+type Comando struct {
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	MaquinaID uint      `gorm:"index;column:maquina_id" json:"maquina_id"`
+	Tipo      string    `gorm:"type:varchar(50)" json:"tipo"`
+	Valor     string    `gorm:"type:varchar(50)" json:"valor"`
+	Sucesso   bool      `gorm:"default:false" json:"sucesso"`
+	Mensagem  string    `gorm:"type:text" json:"mensagem"`
+	DataHora  time.Time `gorm:"default:now();column:data_hora" json:"data_hora"`
+	Maquina   Maquina   `gorm:"foreignKey:MaquinaID" json:"maquina,omitempty"`
+}
+
+func (Comando) TableName() string {
+	return "comandos"
+}
+
 func (f *LeituraFiltro) Apply(db *gorm.DB) *gorm.DB {
 	if f.MaquinaID != nil {
 		db = db.Where("maquina_id = ?", *f.MaquinaID)

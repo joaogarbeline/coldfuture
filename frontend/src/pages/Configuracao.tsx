@@ -23,6 +23,10 @@ import {
   Alert,
   Chip,
   Divider,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -30,9 +34,10 @@ import {
   Delete as DeleteIcon,
   Tune as TuneIcon,
   Search as DiscoverIcon,
+  Cable as CableIcon,
 } from '@mui/icons-material';
 import { useMaquinas } from '../hooks/useMaquinas';
-import { maquinasApi } from '../services/api';
+import { maquinasApi, configApi } from '../services/api';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Maquina } from '../types';
 
@@ -60,6 +65,70 @@ export default function Configuracao() {
 
   const [discovering, setDiscovering] = useState(false);
   const [discoveredAddrs, setDiscoveredAddrs] = useState<number[]>([]);
+
+  const [openModbus, setOpenModbus] = useState(false);
+  const [modbusModo, setModbusModo] = useState('rtu');
+  const [modbusPorta, setModbusPorta] = useState('COM4');
+  const [modbusBaudrate, setModbusBaudrate] = useState('9600');
+  const [modbusParity, setModbusParity] = useState('N');
+  const [modbusStopbits, setModbusStopbits] = useState('1');
+  const [modbusTCPHost, setModbusTCPHost] = useState('192.168.1.100');
+  const [modbusTCPPort, setModbusTCPPort] = useState('502');
+  const [modbusTimeout, setModbusTimeout] = useState('2');
+  const [savingModbus, setSavingModbus] = useState(false);
+  const [carregandoModbus, setCarregandoModbus] = useState(false);
+
+  const carregarConfigModbus = async () => {
+    setCarregandoModbus(true);
+    try {
+      const c = await configApi.buscar();
+      if (c) {
+        setModbusModo(c.modbus_modo ?? 'rtu');
+        setModbusPorta(c.modbus_porta ?? 'COM4');
+        setModbusBaudrate(String(c.modbus_baudrate ?? 9600));
+        setModbusParity(c.modbus_parity ?? 'N');
+        setModbusStopbits(String(c.modbus_stopbits ?? 1));
+        setModbusTCPHost(c.modbus_tcp_host ?? '192.168.1.100');
+        setModbusTCPPort(String(c.modbus_tcp_port ?? 502));
+        setModbusTimeout(String(c.modbus_timeout ?? 2));
+      }
+    } catch {
+    } finally {
+      setCarregandoModbus(false);
+    }
+  };
+
+  const abrirConfigModbus = async () => {
+    setOpenModbus(true);
+    await carregarConfigModbus();
+  };
+
+  const handleSalvarModbus = async () => {
+    setSavingModbus(true);
+    setMsg(null);
+    try {
+      const payload = {
+        modbus_modo: modbusModo,
+        modbus_porta: modbusPorta,
+        modbus_baudrate: parseInt(modbusBaudrate) || 9600,
+        modbus_parity: modbusParity,
+        modbus_stopbits: parseInt(modbusStopbits) || 1,
+        modbus_tcp_host: modbusTCPHost,
+        modbus_tcp_port: parseInt(modbusTCPPort) || 502,
+        modbus_timeout: parseInt(modbusTimeout) || 2,
+      };
+      await configApi.salvarModbus(payload);
+      setMsg({ tipo: 'success', texto: 'Configuracao Modbus salva! Reinicie o servidor para aplicar.' });
+      setOpenModbus(false);
+    } catch (err: any) {
+      setMsg({
+        tipo: 'error',
+        texto: err?.response?.data?.error ?? 'Erro ao salvar configuracao.',
+      });
+    } finally {
+      setSavingModbus(false);
+    }
+  };
 
   const abrirCriar = () => {
     setEditMode(false);
@@ -194,6 +263,13 @@ export default function Configuracao() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4" fontWeight={700}>Configuracao</Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
+            variant="outlined"
+            startIcon={<CableIcon />}
+            onClick={abrirConfigModbus}
+          >
+            Conexao Modbus
+          </Button>
           <Button
             variant="outlined"
             startIcon={discovering ? <CircularProgress size={18} /> : <DiscoverIcon />}
@@ -433,6 +509,128 @@ export default function Configuracao() {
           <Button onClick={() => setOpenSetpoints(false)}>Cancelar</Button>
           <Button variant="contained" onClick={handleSalvarSetpoints} disabled={savingSp}>
             {savingSp ? <CircularProgress size={20} /> : 'Salvar Setpoints'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={openModbus} onClose={() => setOpenModbus(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Conexao Modbus (RTU / TCP)</DialogTitle>
+        <DialogContent>
+          {carregandoModbus ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+              <FormControl fullWidth>
+                <InputLabel>Modo de Conexao</InputLabel>
+                <Select
+                  value={modbusModo}
+                  label="Modo de Conexao"
+                  onChange={(e) => setModbusModo(e.target.value)}
+                >
+                  <MenuItem value="rtu">RTU (Serial / RS485 / USB-RS485)</MenuItem>
+                  <MenuItem value="tcp">TCP/IP (Modbus Gateway / Ethernet)</MenuItem>
+                </Select>
+              </FormControl>
+
+              {modbusModo === 'rtu' && (
+                <>
+                  <TextField
+                    label="Porta Serial (ex: COM3, COM4, /dev/ttyUSB0)"
+                    value={modbusPorta}
+                    onChange={(e) => setModbusPorta(e.target.value)}
+                    fullWidth
+                    required
+                  />
+                  <Grid container spacing={2}>
+                    <Grid item xs={6}>
+                      <TextField
+                        label="Baudrate"
+                        type="number"
+                        value={modbusBaudrate}
+                        onChange={(e) => setModbusBaudrate(e.target.value)}
+                        fullWidth
+                        inputProps={{ min: 1200, max: 115200 }}
+                      />
+                    </Grid>
+                    <Grid item xs={3}>
+                      <FormControl fullWidth>
+                        <InputLabel>Parity</InputLabel>
+                        <Select
+                          value={modbusParity}
+                          label="Parity"
+                          onChange={(e) => setModbusParity(e.target.value)}
+                        >
+                          <MenuItem value="N">N (None)</MenuItem>
+                          <MenuItem value="E">E (Even)</MenuItem>
+                          <MenuItem value="O">O (Odd)</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid item xs={3}>
+                      <FormControl fullWidth>
+                        <InputLabel>Stop Bits</InputLabel>
+                        <Select
+                          value={modbusStopbits}
+                          label="Stop Bits"
+                          onChange={(e) => setModbusStopbits(e.target.value)}
+                        >
+                          <MenuItem value="1">1</MenuItem>
+                          <MenuItem value="2">2</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                  </Grid>
+                </>
+              )}
+
+              {modbusModo === 'tcp' && (
+                <Grid container spacing={2}>
+                  <Grid item xs={8}>
+                    <TextField
+                      label="IP do Modbus Gateway"
+                      value={modbusTCPHost}
+                      onChange={(e) => setModbusTCPHost(e.target.value)}
+                      fullWidth
+                      required
+                      placeholder="192.168.1.100"
+                    />
+                  </Grid>
+                  <Grid item xs={4}>
+                    <TextField
+                      label="Porta TCP"
+                      type="number"
+                      value={modbusTCPPort}
+                      onChange={(e) => setModbusTCPPort(e.target.value)}
+                      fullWidth
+                      required
+                      inputProps={{ min: 1, max: 65535 }}
+                    />
+                  </Grid>
+                </Grid>
+              )}
+
+              <TextField
+                label="Timeout (segundos)"
+                type="number"
+                value={modbusTimeout}
+                onChange={(e) => setModbusTimeout(e.target.value)}
+                fullWidth
+                inputProps={{ min: 1, max: 30 }}
+                helperText="Tempo limite de espera por resposta"
+              />
+
+              <Alert severity="warning" sx={{ mt: 1 }}>
+                Apos salvar, reinicie o servidor (server.exe) para que as alteracoes tenham efeito.
+              </Alert>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenModbus(false)}>Cancelar</Button>
+          <Button variant="contained" onClick={handleSalvarModbus} disabled={savingModbus}>
+            {savingModbus ? <CircularProgress size={20} /> : 'Salvar'}
           </Button>
         </DialogActions>
       </Dialog>

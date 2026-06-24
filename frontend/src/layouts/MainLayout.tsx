@@ -18,6 +18,7 @@ import {
   Menu as MenuIcon,
   Dashboard as DashboardIcon,
   Assessment as ReportIcon,
+  Tune as TuneIcon,
   Warning as WarningIcon,
   Settings as SettingsIcon,
   Thermostat as ThermostatIcon,
@@ -31,6 +32,7 @@ const DRAWER_WIDTH = 260;
 
 const menuItems = [
   { label: 'Dashboard', icon: <DashboardIcon />, path: '/' },
+  { label: 'Controles', icon: <TuneIcon />, path: '/controles' },
   { label: 'Relatorios', icon: <ReportIcon />, path: '/relatorios' },
   { label: 'Alarmes', icon: <WarningIcon />, path: '/alarmes' },
   { label: 'Configuracao', icon: <SettingsIcon />, path: '/configuracao' },

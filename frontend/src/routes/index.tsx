@@ -4,6 +4,7 @@ import Dashboard from '../pages/Dashboard';
 import Alarmes from '../pages/Alarmes';
 import Configuracao from '../pages/Configuracao';
 import Relatorios from '../pages/Relatorios';
+import Controles from '../pages/Controles';
 import Login from '../pages/Login';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -34,6 +35,7 @@ export default function AppRoutes() {
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/relatorios" element={<Relatorios />} />
+              <Route path="/controles" element={<ProtectedRoute><Controles /></ProtectedRoute>} />
               <Route path="/alarmes" element={<Alarmes />} />
               <Route path="/configuracao" element={<ProtectedRoute><Configuracao /></ProtectedRoute>} />
             </Routes>

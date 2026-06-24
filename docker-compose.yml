@@ -21,12 +21,8 @@ services:
   coldvisio:
     build: .
     container_name: coldvisio
-    profiles:
-      - linux
     ports:
-      - "80:8080"
-    devices:
-      - "/dev/ttyUSB0:/dev/ttyUSB0"
+      - "8081:8080"
     environment:
       - MODBUS_PORT=/dev/ttyUSB0
       - MODBUS_BAUDRATE=9600

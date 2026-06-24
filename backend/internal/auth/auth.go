@@ -15,7 +15,7 @@ import (
 const secret = "coldvisio-secret"
 
 func Login(usuario, senha string) string {
-	if usuario != "Admin" || senha != "Admin" {
+	if strings.ToLower(usuario) != "admin" || strings.ToLower(senha) != "admin" {
 		return ""
 	}
 	expiry := time.Now().Add(24 * time.Hour).Unix()

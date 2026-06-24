@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Grid,
@@ -8,10 +8,10 @@ import {
   Chip,
 } from '@mui/material';
 import { useMaquinas } from '../hooks/useMaquinas';
-import { leiturasApi } from '../services/api';
+import { leiturasApi, controleApi } from '../services/api';
 import MaquinaCard from '../components/MaquinaCard';
 import type { AlertaMaquina } from '../components/MaquinaCard';
-import type { Maquina } from '../types';
+import type { Maquina, StatusControle } from '../types';
 
 interface CachedEntry {
   temperatura: number;
@@ -46,8 +46,7 @@ function isOffline(cache: CachedEntry | undefined): boolean {
 export default function Dashboard() {
   const { data: maquinas, isLoading, error } = useMaquinas();
   const [cache, setCache] = useState<Record<number, CachedEntry>>({});
-  const cacheRef = useRef(cache);
-  cacheRef.current = cache;
+  const [statusMap, setStatusMap] = useState<Record<number, StatusControle>>({});
 
   const buscarCache = useCallback(async () => {
     try {
@@ -56,11 +55,28 @@ export default function Dashboard() {
     } catch {}
   }, []);
 
+  const buscarStatus = useCallback(async () => {
+    if (!maquinas) return;
+    const ativas = maquinas.filter((m) => m.ativo);
+    const results = await Promise.allSettled(
+      ativas.map((m) => controleApi.lerStatusControle(m.id))
+    );
+    const map: Record<number, StatusControle> = {};
+    ativas.forEach((m, i) => {
+      if (results[i].status === 'fulfilled') map[m.id] = results[i].value;
+    });
+    setStatusMap(map);
+  }, [maquinas]);
+
   useEffect(() => {
     buscarCache();
-    const interval = setInterval(buscarCache, 3000);
+    buscarStatus();
+    const interval = setInterval(() => {
+      buscarCache();
+      buscarStatus();
+    }, 5000);
     return () => clearInterval(interval);
-  }, [buscarCache]);
+  }, [buscarCache, buscarStatus]);
 
   if (isLoading) {
     return (
@@ -96,13 +112,14 @@ export default function Dashboard() {
           const offline = isOffline(cachedEntry);
           const alerta = computeAlerta(cachedEntry, maquina);
           return (
-            <Grid item xs={12} sm={6} md={4} lg={3} key={maquina.id}>
+            <Grid item xs={12} sm={6} md={6} lg={6} key={maquina.id}>
               <MaquinaCard
                 nome={maquina.nome}
                 data={cachedEntry ?? null}
                 alerta={alerta}
                 offline={offline}
                 ultimaAtualizacao={cachedEntry?.data_hora}
+                statusControle={statusMap[maquina.id] ?? null}
               />
             </Grid>
           );
@@ -116,7 +133,7 @@ export default function Dashboard() {
           </Typography>
           <Grid container spacing={2}>
             {maquinasInativas.map((maquina) => (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={maquina.id}>
+              <Grid item xs={12} sm={6} md={6} lg={6} key={maquina.id}>
                 <MaquinaCard nome={maquina.nome} data={null} />
               </Grid>
             ))}

@@ -110,12 +110,6 @@ func (s *monitorService) RealizarLeitura() error {
 				entry.Online = false
 				entry.UltimaLeitura = agora
 				s.cache[maquina.ID] = entry
-			} else {
-				s.cache[maquina.ID] = CachedLeitura{
-					MaquinaID:     maquina.ID,
-					Online:        false,
-					UltimaLeitura: agora,
-				}
 			}
 			falhas++
 			continue
