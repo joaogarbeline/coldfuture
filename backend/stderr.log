@@ -1,21 +1,13 @@
-{"level":"info","msg":"conectado ao PostgreSQL com sucesso","time":"2026-06-24T10:31:01-04:00"}
-{"level":"info","msg":"executando migracoes...","time":"2026-06-24T10:31:01-04:00"}
-{"level":"info","msg":"migracoes executadas com sucesso","time":"2026-06-24T10:31:01-04:00"}
-{"component":"scheduler","level":"info","msg":"scheduler iniciado com intervalo de 5m0s","time":"2026-06-24T10:31:01-04:00"}
-{"component":"export-diario","level":"info","msg":"proximo export diario agendado para 2026-06-24 23:59:00 (em 13h27m58s)","time":"2026-06-24T10:31:01-04:00"}
-{"level":"info","msg":"servidor iniciado na porta 8080","time":"2026-06-24T10:31:01-04:00"}
-{"handler":"controle","level":"error","msg":"erro ao ler status controle: falha ao ler status ON/OFF: falha ao conectar na porta serial: Access is denied.","time":"2026-06-24T10:31:01-04:00"}
-{"level":"info","maquina":"Máquina 1","msg":"Temp: 17°C  Umid: 51%","service":"monitor","time":"2026-06-24T10:31:02-04:00"}
-{"level":"info","msg":"leitura concluida: 1 sucessos, 0 falhas","service":"monitor","time":"2026-06-24T10:31:02-04:00"}
-{"level":"info","maquina":"Máquina 1","msg":"Temp: 17°C  Umid: 51%","service":"monitor","time":"2026-06-24T10:36:02-04:00"}
-{"level":"info","msg":"leitura concluida: 1 sucessos, 0 falhas","service":"monitor","time":"2026-06-24T10:36:02-04:00"}
-{"level":"info","maquina":"Máquina 1","msg":"Temp: 17°C  Umid: 52%","service":"monitor","time":"2026-06-24T10:41:02-04:00"}
-{"level":"info","msg":"leitura concluida: 1 sucessos, 0 falhas","service":"monitor","time":"2026-06-24T10:41:02-04:00"}
-{"level":"info","maquina":"Máquina 1","msg":"Temp: 17°C  Umid: 52%","service":"monitor","time":"2026-06-24T10:46:02-04:00"}
-{"level":"info","msg":"leitura concluida: 1 sucessos, 0 falhas","service":"monitor","time":"2026-06-24T10:46:02-04:00"}
-{"level":"info","maquina":"Máquina 1","msg":"Temp: 17°C  Umid: 52%","service":"monitor","time":"2026-06-24T10:51:02-04:00"}
-{"level":"info","msg":"leitura concluida: 1 sucessos, 0 falhas","service":"monitor","time":"2026-06-24T10:51:02-04:00"}
-{"level":"info","maquina":"Máquina 1","msg":"Temp: 18°C  Umid: 52%","service":"monitor","time":"2026-06-24T10:56:02-04:00"}
-{"level":"info","msg":"leitura concluida: 1 sucessos, 0 falhas","service":"monitor","time":"2026-06-24T10:56:02-04:00"}
-{"level":"info","maquina":"Máquina 1","msg":"Temp: 18°C  Umid: 50%","service":"monitor","time":"2026-06-24T11:01:02-04:00"}
-{"level":"info","msg":"leitura concluida: 1 sucessos, 0 falhas","service":"monitor","time":"2026-06-24T11:01:02-04:00"}
+{"level":"info","msg":"conectado ao PostgreSQL com sucesso","time":"2026-06-24T14:43:15-04:00"}
+{"level":"info","msg":"executando migracoes...","time":"2026-06-24T14:43:15-04:00"}
+{"level":"info","msg":"migracoes executadas com sucesso","time":"2026-06-24T14:43:15-04:00"}
+{"component":"scheduler","level":"info","msg":"scheduler iniciado com intervalo de 5m0s","time":"2026-06-24T14:43:15-04:00"}
+{"component":"export-diario","level":"info","msg":"proximo export diario agendado para 2026-06-24 23:59:00 (em 9h15m44s)","time":"2026-06-24T14:43:15-04:00"}
+{"level":"info","msg":"servidor iniciado na porta 8080","time":"2026-06-24T14:43:15-04:00"}
+{"level":"info","maquina":"Máquina 1","msg":"Temp: 18°C  Umid: 43%","service":"monitor","time":"2026-06-24T14:43:16-04:00"}
+{"level":"info","msg":"leitura concluida: 1 sucessos, 0 falhas","service":"monitor","time":"2026-06-24T14:43:16-04:00"}
+{"addr":1280,"component":"modbus","level":"info","msg":"writeRegisterRawRTU: ok (8 bytes de resposta)","slave":1,"time":"2026-06-24T14:43:22-04:00","value":1}
+{"level":"info","msg":"comando liga/desliga (1) enviado para Máquina 1","service":"controle","time":"2026-06-24T14:43:22-04:00"}
+{"addr":1280,"component":"modbus","level":"info","msg":"writeRegisterRawRTU: ok (8 bytes de resposta)","slave":1,"time":"2026-06-24T14:43:26-04:00","value":257}
+{"level":"info","msg":"comando liga/desliga (257) enviado para Máquina 1","service":"controle","time":"2026-06-24T14:43:26-04:00"}
+{"handler":"controle","level":"error","msg":"erro ao ler status controle: falha ao ler status ON/OFF: falha ao ler registro 32889 slave 1: serial: timeout","time":"2026-06-24T14:43:29-04:00"}

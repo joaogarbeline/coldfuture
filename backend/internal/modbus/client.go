@@ -43,17 +43,20 @@ type Client interface {
 }
 
 type modbusClient struct {
-	mode      string
-	rtu       *modbus.RTUClientHandler
-	tcp       *modbus.TCPClientHandler
-	rawConn   net.Conn
-	client    modbus.Client
-	mu        sync.Mutex
-	timeout   time.Duration
-	cfg       *config.Config
-	tcpActive bool
-	log       *logrus.Entry
+	mode             string
+	rtu              *modbus.RTUClientHandler
+	tcp              *modbus.TCPClientHandler
+	rawConn          net.Conn
+	client           modbus.Client
+	mu               sync.Mutex
+	timeout          time.Duration
+	cfg              *config.Config
+	tcpActive        bool
+	holdingSerialMu  bool
+	log              *logrus.Entry
 }
+
+var serialMu sync.Mutex
 
 func NewClient(cfg *config.Config) Client {
 	return &modbusClient{
@@ -78,6 +81,10 @@ func (c *modbusClient) connect() error {
 			c.client = modbus.NewClient(c.tcp)
 		}
 	} else if c.mode == "rtu" {
+		if !c.holdingSerialMu {
+			serialMu.Lock()
+			c.holdingSerialMu = true
+		}
 		if c.rtu == nil {
 			c.rtu = modbus.NewRTUClientHandler(c.cfg.ModbusPort)
 			c.rtu.BaudRate = c.cfg.ModbusBaudrate
@@ -86,6 +93,10 @@ func (c *modbusClient) connect() error {
 			c.rtu.StopBits = c.cfg.ModbusStopbits
 			c.rtu.Timeout = c.timeout
 			if err := c.rtu.Connect(); err != nil {
+				if c.holdingSerialMu {
+					serialMu.Unlock()
+					c.holdingSerialMu = false
+				}
 				return fmt.Errorf("falha ao conectar na porta serial: %w", err)
 			}
 			c.client = modbus.NewClient(c.rtu)
@@ -420,7 +431,7 @@ func (c *modbusClient) ReadStatusControle(slaveID byte) (*StatusControle, error)
 	}
 
 	return &StatusControle{
-		Ligado:          onOff == 1,
+		Ligado:          (onOff & 1) != 0,
 		Degelo:          (comando & BitDegelo) != 0,
 		Refrigeracao:    (reles & BitRefrigeracao) != 0,
 		Ventilacao:      (reles & BitVentilacao) != 0,
@@ -522,19 +533,25 @@ func (c *modbusClient) readRegisterRaw(slaveID byte, addr uint16) ([]byte, error
 }
 
 func (c *modbusClient) Close() error {
+	var err error
 	if c.rawConn != nil {
-		return c.rawConn.Close()
+		err = c.rawConn.Close()
+		c.rawConn = nil
 	}
 	if c.mode == "tcp" && c.tcp != nil {
 		c.tcpActive = false
-		return c.tcp.Close()
+		err = c.tcp.Close()
+		c.tcp = nil
 	}
 	if c.rtu != nil {
-		err := c.rtu.Close()
+		err = c.rtu.Close()
 		c.rtu = nil
-		return err
 	}
-	return nil
+	if c.holdingSerialMu {
+		serialMu.Unlock()
+		c.holdingSerialMu = false
+	}
+	return err
 }
 
 func decodeRegister(data []byte, index int) float64 {
